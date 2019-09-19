@@ -1,50 +1,44 @@
 import numpy as np
 import pandas as pd
 import cv2
-from matplotlib import pyplot as plt
-from bill import Bill
+import logging
+from itau_extractor import ItauExtractor
+from exceptions import InvalidReceipt
 
-from PIL import Image # Importando o módulo Pillow para abrir a imagem no script
-import pytesseract # Módulo para a utilização da tecnologia OCR
-
-def normalize_payer(full_payer):
-    payers = ['Andre', 'Barbara']
-    for payer in payers:
-        if payer.lower() in full_payer.lower():
-            return payer
-    return full_payer
-
-def valid_bill_name(bill_name_orig):
-    bill_name = bill_name_orig.lower()
-
-    # when user dont fill de description field then it shows comprovante de pagamento titulos itau
-    # in this, bot should ask to user wich bill it is
-    if 'comprovante' in bill_name and 'pagamento' in bill_name and 'titulos' in bill_name:
-        return None
-    else:
-        return bill_name_orig.replace('\n', ' ')
+def __check_receipt(image, template):
+    logo = __logo_detector(image, template)
+    if not logo:
+        raise InvalidReceipt()
+    return True
 
 # read the receipt image and extract information like payer, due date, value etc
-def read(receipt_path):
-    print('open image')
+def read(receipt_path, logos_path, payer):
+    logging.info(f'opening image: {receipt_path}')
     receipt_BGR = cv2.imread(receipt_path)
-    print('convert to grayscale')
+
+    logging.info(f'converting to grayscale: {receipt_path}')
     receipt = cv2.cvtColor(receipt_BGR, cv2.COLOR_BGR2GRAY)
 
-    if receipt.shape[0] >= 1200: # pagamento de boleto
-        print('pagamento de boleto')
+    logging.info(f'checking if receipt is valid: {receipt_path}')
+    __check_receipt(cv2.imread(receipt_path), cv2.imread(logos_path))
+
+    extractor = ItauExtractor()
+    return extractor.get_info(receipt, payer)
+
+def __logo_detector(image, template, threshold = 0.9):
+    w, h = template.shape[:-1]
+    best_val = 0
+    for s in np.linspace(0.1, 3.0, 15)[::-1]:
         try:
-            bill_name = extract_text(receipt[50:100,:])
-            paid_date = extract_text(receipt[200:220,63:130])
-            payer = extract_text(receipt[780:800, :])
-            due_date = extract_text(receipt[1090:1110,10:90])
-            value = float(extract_text(receipt[110:130, 40:], config = '--psm 7').replace(',', '.'))
-
-            return Bill(valid_bill_name(bill_name), value, paid_date, due_date, normalize_payer(payer))
-        except Exception as e:
-            print(e)
-    else:
-        print('receipt not recognized')
-
-def extract_text(receipt, extractor = pytesseract.image_to_string, config = ''):
-	return extractor(receipt, config = config)
+            img_resize = cv2.resize(image, None, fx=s, fy=s)
+            res = cv2.matchTemplate(img_resize,template, cv2.TM_CCOEFF_NORMED)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            if max_val > best_val:
+                best_val = max_val
+            
+            if best_val > threshold:
+                return True
+        except:
+            pass
+    logging.info(f'max val: {best_val}')
+    return best_val > threshold
