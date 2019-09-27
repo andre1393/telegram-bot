@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import cv2
 import logging
-from itau_extractor import ItauExtractor
-from exceptions import InvalidReceipt
+from extractor.itau_extractor import ItauExtractor
+from exceptions.exceptions import InvalidReceipt
 
 def __check_receipt(image, template):
     logo = __logo_detector(image, template)

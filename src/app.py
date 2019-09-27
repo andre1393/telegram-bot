@@ -1,7 +1,8 @@
-from submit_bill import submit
-import receipt_processor as rp
-from bill import Bill, EFields
+from integration.submit_bill import submit
+import extractor.receipt_processor as rp
+from model.bill import Bill, EFields
 import config as cfg
+from util import get_args, get_token, create_dirs
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, ConversationHandler, CallbackQueryHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ChatAction
@@ -9,19 +10,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ChatAction
 import logging
 import os
 import time
+import sys
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s\t: %(message)s (%(filename)s:%(lineno)d)', datefmt='%d-%b-%y %H:%M:%S', level = logging.INFO)
 
-SUBMIT = 0
-SET_BILL_NAME = 1
-APPLY_CHANGE = 2
-CHANGE_VALUE_OPTIONS = 3
+SUBMIT, SET_BILL_NAME, APPLY_CHANGE, CHANGE_VALUE_OPTIONS = range(4)
 
 cache_bill = None
-
-def error(update, context):
-    """Log Errors caused by Updates."""
-    logging.info('Update "%s" caused error "%s"', update, context.error)
 
 def introduction(bot, update):
 	send_message_delay(bot, update, 'Olá eu sou o bot das contas \uD83E\uDD16')
@@ -66,14 +61,13 @@ def process_images(bot, update, user_data):
 	try:
 		bill = rp.read(all_images_path, cfg.logos_path, payer)
 		user_data['bill'] = bill
-		logging.info('teste')
 		if bill.name == None:
 			cache_bill = bill
 			update.message.reply_text('Não consegui identificar o nome dessa conta. Que conta é essa?')
 			return SET_BILL_NAME
 		else:
 			os.rename(all_images_path, receipts_path)
-			bill_confirmation(update.message, bill)
+			bill_confirmation_button(update.message, bill)
 			return SUBMIT
 
 	except rp.InvalidReceipt as e:
@@ -82,15 +76,7 @@ def process_images(bot, update, user_data):
 
 	return ConversationHandler.END
 
-def create_dirs(dirs):
-	# TODO: save into a storage
-
-	for d in dirs:
-		if not os.path.exists(d):
-			logging.info(f'directory {d} does not exists. creating...')
-			os.makedirs(d)
-
-def bill_confirmation(message, bill):
+def bill_confirmation_button(message, bill):
 	button_list = [ 
 		[InlineKeyboardButton("Confirma", callback_data="confirm")],
 		[InlineKeyboardButton("Alterar algum valor", callback_data="change_value")],
@@ -99,7 +85,7 @@ def bill_confirmation(message, bill):
 	msg = bill.to_text() + '\n\nO que deseja fazer?'
 	message.reply_text(msg, reply_markup=InlineKeyboardMarkup(button_list))
 
-def change_value_options(message):
+def change_value_options_button(message):
 	button_list = [
 		[InlineKeyboardButton("Alterar conta", callback_data=EFields.name.name)],
 		[InlineKeyboardButton("Alterar valor", callback_data=EFields.value.name)],
@@ -113,32 +99,32 @@ def change_value_options(message):
 def apply_change(bot, update, user_data):
 	bill = user_data['bill']
 	setattr(bill, user_data['fix_field'], update.message.text)
-	bill_confirmation(update.message, bill)
+	bill_confirmation_button(update.message, bill)
 	return SUBMIT
 
 def set_bill_name(bot, update, user_data):
 	bill = user_data['bill']
 	bill.name = update.message.text
 
-	bill_confirmation(update.message, bill)
+	bill_confirmation_button(update.message, bill)
 
 	return SUBMIT
-
-def get_token():
-	return open(cfg.token).read()
 
 def callback_change_value_options(bot, update, user_data):
 	query = update.callback_query
 	answer = query.data
 
-	print(answer)
+	logging.info(answer)
 	if answer == "cancel":
 		return cancel_receipt(bot, update)
 	elif answer == "return":
-		bill_confirmation(update.callback_query.message, user_data['bill'])
+		bill_confirmation_button(update.callback_query.message, user_data['bill'])
 		return SUBMIT
 	else:
-		update.callback_query.message.reply_text(f"Qual o valor de {EFields[answer].value} certo?")
+		msg = f"Qual o valor de {EFields[answer].value} certo?"
+		if (EFields[answer] == EFields.paid_date) or (EFields[answer] == EFields.due_date):
+			msg += "\nFormato: (dia/mes/ano)"
+		update.callback_query.message.reply_text(msg)
 		user_data['fix_field'] = answer
 		return APPLY_CHANGE
 
@@ -150,22 +136,26 @@ def submit_bill(bot, update, user_data):
 	query = update.callback_query
 	answer = query.data
 
+	submit_bill, contas_host = get_args(sys)
+	logging.info(f"submit bill: {submit_bill}")
+	logging.info(f"contas host: {contas_host}")
+
 	if answer == 'confirm':
 		logging.debug(query.message.text)
-		submit(user_data['bill'])
+		submit(user_data['bill'], contas_host, submit_bill)
 		update.callback_query.message.reply_text('Conta cadastrada com sucesso!')
 		return ConversationHandler.END
 	elif answer == "cancel":
 		return cancel_receipt(bot, update)
 	elif answer == "change_value":
-		change_value_options(update.callback_query.message)
+		change_value_options_button(update.callback_query.message)
 		return CHANGE_VALUE_OPTIONS
 
 	return ConversationHandler.END
-
+		
 def main():
 	logging.info('starting bot')
-	updater = Updater(get_token())
+	updater = Updater(get_token(cfg))
 	dp = updater.dispatcher
 	
 	conv_handler = ConversationHandler(
@@ -186,5 +176,5 @@ def main():
 	updater.start_polling()
 	updater.idle()
 
-if __name__ == '__main__':
+if __name__ == '__main__':	
  	main()

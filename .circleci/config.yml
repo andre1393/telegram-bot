@@ -1,0 +1,38 @@
+version: 2
+jobs:
+  bot-token:
+    machine: true
+    steps:
+      - run:
+        name: create token.txt file
+        command: echo $BOT_KEY_DEV >> token.txt
+      - save_cache:
+        key: token-{{ .Environment.CIRCLE_SHA1 }}
+        paths:
+          - ./token.txt
+  build-dev:
+    machine: true
+    steps:
+      - checkout
+      - restore_cache:
+          key: token-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+        name: docker login
+        command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_USER --password-stdin
+      - run:
+        name: build docker image
+        command: docker build -t ${DOCKER_USER}/${IMAGE_NAME} .
+      - run:
+        name: push image to dockerhub
+        command: docker push ${DOCKER_USER}/${IMAGE_NAME}
+workflows:
+  version: 2
+  build_test_dev:
+    jobs:
+      - bot-token
+      - build-dev:
+          requires:
+            - bot-token
+          filters:
+            branches:
+              only: develop

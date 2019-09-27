@@ -32,7 +32,7 @@ class Bill:
 	
 	@due_date.setter
 	def due_date(self, value):
-		datetime_object = datetime.datetime.strptime(value, "%d/%m/%Y")
+		datetime_object = datetime.datetime.strptime(value.lstrip().rstrip(), "%d/%m/%Y")
 		self._due_date = datetime_object.strftime("%Y-%m-%d")
 
 	@property
@@ -41,7 +41,7 @@ class Bill:
 	
 	@paid_date.setter
 	def paid_date(self, value):
-		datetime_object = datetime.datetime.strptime(value, "%d/%m/%Y")
+		datetime_object = datetime.datetime.strptime(value.lstrip().rstrip(), "%d/%m/%Y")
 		self._paid_date = datetime_object.strftime("%Y-%m-%d")
 
 	@property
