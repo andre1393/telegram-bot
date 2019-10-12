@@ -32,8 +32,11 @@ class Bill:
 	
 	@due_date.setter
 	def due_date(self, value):
-		datetime_object = datetime.datetime.strptime(value.lstrip().rstrip(), "%d/%m/%Y")
-		self._due_date = datetime_object.strftime("%Y-%m-%d")
+		if isinstance(value, datetime.datetime):
+			self._due_date = value
+		else:
+		    datetime_object = datetime.datetime.strptime(value.lstrip().rstrip(), "%d/%m/%Y")
+		    self._due_date = datetime_object.strftime("%Y-%m-%d")
 
 	@property
 	def paid_date(self):
@@ -41,8 +44,11 @@ class Bill:
 	
 	@paid_date.setter
 	def paid_date(self, value):
-		datetime_object = datetime.datetime.strptime(value.lstrip().rstrip(), "%d/%m/%Y")
-		self._paid_date = datetime_object.strftime("%Y-%m-%d")
+		if isinstance(value, datetime.datetime) or (value is None):
+		    self._paid_date = value
+		else:
+		    datetime_object = datetime.datetime.strptime(value.lstrip().rstrip(), "%d/%m/%Y")
+		    self._paid_date = datetime_object.strftime("%Y-%m-%d")
 
 	@property
 	def payer(self):
@@ -53,7 +59,13 @@ class Bill:
 		self._payer = unidecode.unidecode(value)
 
 	def to_text(self):
-		return f'conta: {self.name}\nvalor: {self.value}\ndata de vencimento: {self.due_date}\ndata de pagamento: {self.paid_date}\npagador: {self.payer}'
+		return f'conta: {self.name}\nvalor: {self.value}\ndata de vencimento: {self._format_date(self.due_date)}\ndata de pagamento: {self._format_date(self.paid_date)}\npagador: {self.payer}'
+
+	def _format_date(self, date):
+		if date:
+		    return datetime.datetime.strftime(date, "%d/%m/%Y")
+		else:
+		    return "???"
 
 class EFields(Enum):
 	name = "conta"
