@@ -11,7 +11,8 @@ jobs:
       - save_cache:
           key: token-{{ .Environment.CIRCLE_SHA1 }}
           paths:
-            - ./token.txt
+            - ./token_dev.txt
+            - ./token_prod.txt
   build-dev:
     machine: true
     steps:
@@ -44,24 +45,20 @@ jobs:
           command: docker push ${DOCKER_REPO_PROD}/${IMAGE_NAME}
 workflows:
   version: 2
-  build_test_dev:
+  build:
     jobs:
       - bot-token:
           filters:
             branches:
-              only: develop
+              only:
+                - develop
+                - master
       - build-dev:
           requires:
             - bot-token
           filters:
             branches:
               only: develop
-  build_test_prod:
-    jobs:
-      - bot-token:
-          filters:
-            branches:
-              only: master
       - build-prod:
           requires:
             - bot-token
