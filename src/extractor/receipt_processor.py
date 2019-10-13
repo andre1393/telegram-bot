@@ -8,8 +8,8 @@ from extractor.extractor import ExtractorDefault
 from exceptions.exceptions import InvalidReceipt
 from model.institutions import EInstitutions
 
-def __check_receipt(image, template):
-    logo = __logo_detector(image, template)
+def _check_receipt(image, template):
+    logo = _logo_detector(image, template)
     return True
 
 # read the receipt image and extract information like payer, due date, value etc
@@ -25,7 +25,7 @@ def read(receipt_path, logos_path, payer):
     institution = None
     for r, d, f in os.walk(logos_path):
         for file in f:
-            if __check_receipt(cv2.imread(receipt_path), cv2.imread(f'{logos_path}{file}')):
+            if _check_receipt(cv2.imread(receipt_path), cv2.imread(f'{logos_path}{file}')):
                 logging.info("receipt recognized")
                 institution = EInstitutions[file.replace(".png", "")]
                 break
@@ -40,7 +40,7 @@ def read(receipt_path, logos_path, payer):
 
     return extractor.get_info(receipt, payer)
 
-def __logo_detector(image, template, threshold = 0.9):
+def _logo_detector(image, template, threshold = 0.9):
     w, h = template.shape[:-1]
     best_val = 0
     for s in np.linspace(0.1, 3.0, 15)[::-1]:
