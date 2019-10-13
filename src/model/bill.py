@@ -71,7 +71,7 @@ class Bill:
 
     def _format_date_api(self, date):
         if date:
-            return date.strftime("%d-%m-%Y")
+            return date.strftime("%Y-%m-%d")
 
     def _format_date_display(self, date):
         if date:

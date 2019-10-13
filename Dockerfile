@@ -22,7 +22,7 @@ ARG submit
 ARG contas_host
 
 ENV contas_host ${contas_host:-35.188.218.51}
-ENV submit ${submit:-false}
+ENV submit ${submit:-true}
 
 WORKDIR /opt/apl/src
 RUN cd /opt/apl/src
