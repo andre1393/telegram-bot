@@ -46,7 +46,10 @@ workflows:
   version: 2
   build_test_dev:
     jobs:
-      - bot-token
+      - bot-token:
+          filters:
+            branches:
+              only: develop
       - build-dev:
           requires:
             - bot-token
@@ -55,7 +58,10 @@ workflows:
               only: develop
   build_test_prod:
     jobs:
-      - bot-token
+      - bot-token:
+          filters:
+            branches:
+              only: master
       - build-prod:
           requires:
             - bot-token
