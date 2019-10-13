@@ -24,6 +24,7 @@ COPY $token /opt/apl/token.txt
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "tesseract-ocr", "tesseract-ocr-por"]
 
+RUN cat /opt/apl/token.txt
 RUN echo $(ls)
 RUN echo $(pwd)
 
