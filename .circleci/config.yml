@@ -23,7 +23,7 @@ jobs:
           command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_USER --password-stdin
       - run:
           name: build docker image
-          command: docker build -t ${DOCKER_REPO_DEV}/${IMAGE_NAME} --build-arg token=token_dev-txt .
+          command: docker build -t ${DOCKER_REPO_DEV}/${IMAGE_NAME} --build-arg token=token_dev.txt .
       - run:
           name: push image to dockerhub
           command: docker push ${DOCKER_REPO_DEV}/${IMAGE_NAME}
@@ -53,3 +53,12 @@ workflows:
           filters:
             branches:
               only: develop
+  build_test_prod:
+    jobs:
+      - bot-token
+      - build-prod:
+          requires:
+            - bot-token
+          filters:
+            branches:
+              only: master
