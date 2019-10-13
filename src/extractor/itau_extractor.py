@@ -1,4 +1,4 @@
-from bill import Bill
+from model.bill import Bill
 from PIL import Image # Importando o módulo Pillow para abrir a imagem no script
 import pytesseract # Módulo para a utilização da tecnologia OCR
 import logging
@@ -21,17 +21,18 @@ class ItauExtractor:
 	    else:
 	        text = self.__extract_text(receipt).split("\n")
 	        logging.info(text)
+	        
 	        bill_name = text[0]
 	        value = float(text[1].replace("RS", "").replace("R$", "").replace(",", "."))
-
+	       
 	        nxt = False
 	        for idx, t in enumerate(text, start=0):
 	            if nxt and len(t) > 1:
 	                due_date = t
 	                nxt = False
-
-	            if "pago em " in t:
-	                paid_date = t.replace("pago em ", "")
+	           
+	            if ("pago em " in t) or ("pagamento efetuado em" in t):
+	                paid_date = t.replace("pago em ", "").replace("pagamento efetuado em", "")
 	            if "data do vencimento" in t:
 	                nxt = True
 	                pass

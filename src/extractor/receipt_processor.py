@@ -2,13 +2,14 @@ import numpy as np
 import pandas as pd
 import cv2
 import logging
-from itau_extractor import ItauExtractor
-from exceptions import InvalidReceipt
+import os
+from extractor.itau_extractor import ItauExtractor
+from extractor.extractor import ExtractorDefault
+from exceptions.exceptions import InvalidReceipt
+from model.institutions import EInstitutions
 
-def __check_receipt(image, template):
-    logo = __logo_detector(image, template)
-    if not logo:
-        raise InvalidReceipt()
+def _check_receipt(image, template):
+    logo = _logo_detector(image, template)
     return True
 
 # read the receipt image and extract information like payer, due date, value etc
@@ -20,12 +21,26 @@ def read(receipt_path, logos_path, payer):
     receipt = cv2.cvtColor(receipt_BGR, cv2.COLOR_BGR2GRAY)
 
     logging.info(f'checking if receipt is valid: {receipt_path}')
-    __check_receipt(cv2.imread(receipt_path), cv2.imread(logos_path))
 
-    extractor = ItauExtractor()
+    institution = None
+    for r, d, f in os.walk(logos_path):
+        for file in f:
+            if _check_receipt(cv2.imread(receipt_path), cv2.imread(f'{logos_path}{file}')):
+                logging.info("receipt recognized")
+                institution = EInstitutions[file.replace(".png", "")]
+                break
+    if institution is EInstitutions.itau:
+        logging.info("bill from itau")
+        extractor = ItauExtractor()
+    elif institution is EInstitutions.nubank:
+        logging.info("bill from nubank")
+        extractor = ExtractorDefault()
+    else:
+        raise Exception("institution not recognized")
+
     return extractor.get_info(receipt, payer)
 
-def __logo_detector(image, template, threshold = 0.9):
+def _logo_detector(image, template, threshold = 0.9):
     w, h = template.shape[:-1]
     best_val = 0
     for s in np.linspace(0.1, 3.0, 15)[::-1]:
