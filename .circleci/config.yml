@@ -5,7 +5,9 @@ jobs:
     steps:
       - run:
           name: create token.txt file
-          command: echo $BOT_KEY_DEV >> token.txt
+          command: |
+              echo $BOT_KEY_DEV >> token_dev.txt
+              echo $BOT_KEY_PROD >> token_prod.txt
       - save_cache:
           key: token-{{ .Environment.CIRCLE_SHA1 }}
           paths:
@@ -21,10 +23,25 @@ jobs:
           command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_USER --password-stdin
       - run:
           name: build docker image
-          command: docker build -t ${DOCKER_USER}/${IMAGE_NAME} .
+          command: docker build -t ${DOCKER_REPO_DEV}/${IMAGE_NAME} --build-arg token=token_dev-txt .
       - run:
           name: push image to dockerhub
-          command: docker push ${DOCKER_USER}/${IMAGE_NAME}
+          command: docker push ${DOCKER_REPO_DEV}/${IMAGE_NAME}
+  build-prod:
+    machine: true
+    steps:
+      - checkout
+      - restore_cache:
+          key: token-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: docker login
+          command: echo $DOCKER_PASSWORD | docker login --username $DOCKER_USER --password-stdin
+      - run:
+          name: build docker image
+          command: docker build -t ${DOCKER_REPO_PROD}/${IMAGE_NAME} --build-arg token=token_prod.txt .
+      - run:
+          name: push image to dockerhub
+          command: docker push ${DOCKER_REPO_PROD}/${IMAGE_NAME}
 workflows:
   version: 2
   build_test_dev:
