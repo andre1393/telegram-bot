@@ -19,7 +19,7 @@ ENV submit ${submit:-true}
 
 COPY ./src/ /opt/apl/src
 COPY ./resources /opt/apl/resources
-COPY $token /opt/
+COPY $token /opt/token.txt
 
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "tesseract-ocr", "tesseract-ocr-por"]
