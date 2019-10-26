@@ -10,6 +10,7 @@ def create_dirs(dirs):
 			os.makedirs(d)
 
 def get_token(cfg):
+	print(open(cfg.token).read())
 	return open(cfg.token).read()
 
 def get_args(sys):
