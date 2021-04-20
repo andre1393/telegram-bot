@@ -1,6 +1,7 @@
 import os
 import logging
 
+
 def create_dirs(dirs):
 	# TODO: save into a storage
 
@@ -9,19 +10,6 @@ def create_dirs(dirs):
 			logging.info(f'directory {d} does not exists. creating...')
 			os.makedirs(d)
 
-def get_token(cfg):
-	print(f"token: {open(cfg.token).read()}")
-	return open(cfg.token).read()
 
-def get_args(sys):
-	submit_bill = None
-	contas_host = None
-	
-	if(len(sys.argv) < 3):
-		logging.warn("please inform boolean submit_bill indicating that should call contas api, and contas host")
-		exit(1)
-
-	submit_bill = sys.argv[1].lower() in ["true"]
-	contas_host = sys.argv[2]
-
-	return submit_bill, contas_host
+def get_args():
+	return os.getenv('SUBMIT_BILL', False), os.getenv('CONTAS_HOST'), os.getenv('CONTAS_PORT')

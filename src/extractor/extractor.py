@@ -1,46 +1,47 @@
-from model.bill import Bill
-from PIL import Image # Importando o módulo Pillow para abrir a imagem no script
-import pytesseract # Módulo para a utilização da tecnologia OCR
 import logging
 import datetime
 
+from PIL import Image # Importando o módulo Pillow para abrir a imagem no script
+import pytesseract # Módulo para a utilização da tecnologia OCR
+
+from model.bill import Bill
+
+
 def convert_float(x):
-    x = x.replace("RS", "").replace("R$", "").replace(",", ".")
+    x = x.replace('RS', '').replace('R$', '').replace(',', '.')
     float(x)
     return x
 
+
 def to_portuguese_date(x):
-    return x \
-    .replace("FEV", "FEB") \
-    .replace("ABR", "APR") \
-    .replace("MAI", "MAY") \
-    .replace("AGO", "AUG") \
-    .replace("SET", "SEP") \
-    .replace("DEZ", "DEC")
+    return x.replace('FEV', 'FEB').replace('ABR', 'APR').replace('MAI', 'MAY').replace('AGO', 'AUG')\
+        .replace('SET', 'SEP').replace('DEZ', 'DEC')
+
 
 def convert_date(x):
-    formats = ["%d/%m/%Y", "%d %b %Y"]
+    formats = ['%d/%m/%Y', '%d %b %Y']
     for f in formats:
         try:
             return datetime.datetime.strptime(to_portuguese_date(x.lstrip().rstrip()), f)
         except Exception as e:
             pass
 
-    raise Exception("not a date")
+    raise Exception('not a date')
+
 
 def convert_str(x):
     if len(x.lstrip().rstrip()) < 2:
-        raise Exception("could not extract information from string")
+        raise Exception('could not extract information from string')
     return x
 
 
-VALUE_OPTIONS = ["valor"]
-PAID_DATE_OPTIONS = ["pago em ", "pagamento efetuado em"]
-DUE_DATE_OPTIONS = ["data do vencimento", "vencimento"]
+VALUE_OPTIONS = ['valor']
+PAID_DATE_OPTIONS = ['pago em ', 'pagamento efetuado em']
+DUE_DATE_OPTIONS = ['data do vencimento', 'vencimento']
 
-ALL_PARAMETERS = [(VALUE_OPTIONS, convert_float, "_value"), 
-                  (PAID_DATE_OPTIONS, convert_date, "_paid_date"),
-                  (DUE_DATE_OPTIONS, convert_date, "_due_date")]
+ALL_PARAMETERS = [(VALUE_OPTIONS, convert_float, '_value'),
+                  (PAID_DATE_OPTIONS, convert_date, '_paid_date'),
+                  (DUE_DATE_OPTIONS, convert_date, '_due_date')]
 
 
 class ExtractorDefault:
@@ -58,14 +59,14 @@ class ExtractorDefault:
            
         for idx, t in enumerate(text, start=0):
             for parameter in ALL_PARAMETERS:
-                value = self._isAnyOptions(t, parameter[0], parameter[1])
+                value = self._is_any_options(t, parameter[0], parameter[1])
                 if value and (getattr(self, parameter[2]) is None):
                     setattr(self, parameter[2], value)
             self._last = t
 
         return Bill(self._valid_bill_name(self._bill_name), self._value, self._due_date, self._paid_date, payer)
 
-    def _isAnyOptions(self, text, options, extract_func):
+    def _is_any_options(self, text, options, extract_func):
         for o in options:
             if (o.lower() in text.lower()) | ((self._last is not None) and (o.lower() in self._last.lower())):
                 return self._get_value(text, extract_func)
@@ -77,8 +78,8 @@ class ExtractorDefault:
         except Exception as e:
             pass
 
-    def _extract_text(self, receipt, extractor = pytesseract.image_to_string, config = ''):
-        return extractor(receipt, config = config)
+    def _extract_text(self, receipt, extractor=pytesseract.image_to_string, config=''):
+        return extractor(receipt, config=config)
 
     def _valid_bill_name(self, bill_name_orig):
         if bill_name_orig is None:

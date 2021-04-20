@@ -3,31 +3,23 @@ FROM python:3.7
 RUN mkdir /opt/apl/
 
 WORKDIR /opt/apl/
-RUN cd /opt/apl/
 
-COPY requirements.txt /opt/apl
+COPY requirements.txt ./
 RUN pip3 install -r requirements.txt
 
-ARG submit
-ARG contas_host
-ARG token
+ARG SUBMIT_BILL
+ARG CONTAS_HOST
+ARG CONTAS_PORT
+ARG TELEGRAM_TOKEN
 
-ENV token ${token:-token.txt}
-ENV contas_host ${contas_host:-35.188.218.51}
-ENV submit ${submit:-true}
+ENV TELEGRAM_TOKEN $TELEGRAM_TOKEN
+ENV CONTAS_HOST ${CONTAS_HOST:-contas}
+ENV CONTAS_PORT ${CONTAS_PORT:-8000}
+ENV SUBMIT_BILL ${SUBMIT_BILL:-true}
 
-
-COPY ./src/ /opt/apl/src
-COPY ./resources /opt/apl/resources
-COPY $token /opt/apl/token.txt
+COPY ./ ./
 
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "tesseract-ocr", "tesseract-ocr-por"]
 
-RUN cat /opt/apl/token.txt
-RUN echo $(ls)
-RUN echo $(pwd)
-
-WORKDIR /opt/apl/src
-RUN cd /opt/apl/src
-CMD python3 /opt/apl/src/app.py $submit $contas_host $token
+ENTRYPOINT ["sh", "init.sh"]
